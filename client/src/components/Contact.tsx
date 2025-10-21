@@ -14,6 +14,7 @@ import { Mail, MapPin, Phone } from "lucide-react";
 import { SiInstagram, SiLinkedin, SiX } from "react-icons/si";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export function Contact() {
   const { toast } = useToast();
@@ -24,15 +25,37 @@ export function Contact() {
     budget: "",
     message: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    toast({
-      title: "Message Sent!",
-      description: "Thank you for reaching out. I'll get back to you within 24 hours.",
-    });
-    setFormData({ name: "", email: "", service: "", budget: "", message: "" });
+    setIsSubmitting(true);
+
+    try {
+      const response = await apiRequest("/api/contact", {
+        method: "POST",
+        body: JSON.stringify(formData),
+      });
+
+      if (response.previewUrl) {
+        console.log("Email preview URL:", response.previewUrl);
+      }
+
+      toast({
+        title: "Message Sent!",
+        description: "Thank you for reaching out. I'll get back to you within 24 hours.",
+      });
+      setFormData({ name: "", email: "", service: "", budget: "", message: "" });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -129,8 +152,14 @@ export function Contact() {
                 />
               </div>
 
-              <Button type="submit" size="lg" className="w-full" data-testid="button-submit">
-                Send Message
+              <Button 
+                type="submit" 
+                size="lg" 
+                className="w-full" 
+                disabled={isSubmitting}
+                data-testid="button-submit"
+              >
+                {isSubmitting ? "Sending..." : "Send Message"}
               </Button>
             </form>
           </Card>
